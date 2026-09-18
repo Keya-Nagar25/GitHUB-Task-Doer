@@ -1,0 +1,192 @@
+# Shared source of truth for the offline classifier and the online LLM's
+# tool-calling contract. Every action the assistant can ever propose must
+# have an entry here. See docs/architecture.md for the full design.
+
+- intent_id: git.add
+  action: add
+  description: "Stage changed files for commit"
+  param_schema:
+    paths: "list[str]"
+  example_phrases:
+    - "stage my changes"
+    - "add everything"
+    - "add all my files"
+    - "stage {paths}"
+  destructive: false
+  undo_strategy: manual_only
+
+- intent_id: git.commit
+  action: commit
+  description: "Commit staged changes with a message"
+  param_schema:
+    message: str
+  example_phrases:
+    - "commit my changes"
+    - "commit everything with the message {message}"
+    - "save this with message {message}"
+    - "make a commit saying {message}"
+  destructive: false
+  undo_strategy: reset_soft
+
+- intent_id: git.push
+  action: push
+  description: "Push local commits to the remote"
+  param_schema:
+    remote: str
+    branch: str
+  example_phrases:
+    - "push my changes"
+    - "push to {remote}"
+    - "upload my commits"
+    - "push this branch"
+  destructive: true
+  undo_strategy: not_undoable
+
+- intent_id: git.pull
+  action: pull
+  description: "Fetch and merge remote changes into the current branch"
+  param_schema:
+    remote: str
+    branch: str
+  example_phrases:
+    - "pull the latest changes"
+    - "get updates from remote"
+    - "sync with github"
+  destructive: false
+  undo_strategy: manual_only
+
+- intent_id: git.branch_create
+  action: branch
+  description: "Create a new branch"
+  param_schema:
+    name: str
+  example_phrases:
+    - "make a new branch called {name}"
+    - "create a branch named {name}"
+    - "start a new branch {name}"
+  destructive: false
+  undo_strategy: recreate_branch
+
+- intent_id: git.checkout
+  action: checkout
+  description: "Switch to a different branch or commit"
+  param_schema:
+    ref: str
+  example_phrases:
+    - "switch to {ref}"
+    - "go to branch {ref}"
+    - "check out {ref}"
+  destructive: false
+  undo_strategy: manual_only
+
+- intent_id: git.merge
+  action: merge
+  description: "Merge another branch into the current branch"
+  param_schema:
+    ref: str
+  example_phrases:
+    - "merge {ref} into this branch"
+    - "combine {ref} with my branch"
+  destructive: true
+  undo_strategy: manual_only
+
+- intent_id: git.reset_soft_last_commit
+  action: reset
+  description: "Undo the last commit but keep the changes staged"
+  param_schema:
+    mode: "soft"
+    target: "HEAD~1"
+  example_phrases:
+    - "undo my last commit"
+    - "undo the last commit but keep my changes"
+    - "take back my last commit"
+  destructive: false
+  undo_strategy: manual_only
+
+- intent_id: git.reset_hard
+  action: reset
+  description: "Discard all local changes since a given commit (DESTRUCTIVE)"
+  param_schema:
+    mode: "hard"
+    target: str
+  example_phrases:
+    - "throw away all my changes"
+    - "discard everything and go back to {target}"
+    - "erase my local changes"
+  destructive: true
+  undo_strategy: not_undoable
+  extra_warning: "This permanently discards uncommitted work. Consider stash instead."
+
+- intent_id: git.stash
+  action: stash
+  description: "Temporarily shelve uncommitted changes"
+  param_schema: {}
+  example_phrases:
+    - "stash my changes"
+    - "shelve what I'm working on"
+    - "save this for later without committing"
+  destructive: false
+  undo_strategy: manual_only
+
+- intent_id: git.log
+  action: log
+  description: "Show commit history"
+  param_schema:
+    limit: int
+  example_phrases:
+    - "show me the commit history"
+    - "what have I committed recently"
+    - "show the log"
+  destructive: false
+  undo_strategy: not_undoable
+
+- intent_id: git.diff
+  action: diff
+  description: "Show what has changed but isn't committed yet"
+  param_schema: {}
+  example_phrases:
+    - "what did I change"
+    - "show my diff"
+    - "what's different from the last commit"
+  destructive: false
+  undo_strategy: not_undoable
+
+- intent_id: github.create_pr
+  action: github_create_pr
+  description: "Open a pull request on GitHub"
+  param_schema:
+    title: str
+    head: str
+    base: str
+  example_phrases:
+    - "open a pull request"
+    - "create a PR from {head} into {base}"
+    - "submit my branch for review"
+  destructive: false
+  undo_strategy: api_delete
+
+- intent_id: github.open_issue
+  action: github_open_issue
+  description: "Open an issue on GitHub"
+  param_schema:
+    title: str
+    body: str
+  example_phrases:
+    - "open an issue saying {title}"
+    - "file a bug report about {title}"
+    - "create an issue"
+  destructive: false
+  undo_strategy: api_delete
+
+- intent_id: github.fork
+  action: github_fork
+  description: "Fork a repository on GitHub"
+  param_schema:
+    owner: str
+    repo: str
+  example_phrases:
+    - "fork this repo"
+    - "fork {owner}/{repo}"
+    - "make my own copy of this repository"
+  destructive: false
+  undo_strategy: api_delete
