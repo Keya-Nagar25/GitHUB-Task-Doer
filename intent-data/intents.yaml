@@ -25,6 +25,8 @@
     - "commit everything with the message {message}"
     - "save this with message {message}"
     - "make a commit saying {message}"
+    - "commit this for me"
+    - "please commit this"
   destructive: false
   undo_strategy: reset_soft
 
