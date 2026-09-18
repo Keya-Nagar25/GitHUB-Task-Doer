@@ -13,6 +13,14 @@ class Settings(BaseModel):
     )
     github_api_base_url: str = os.environ.get("GITHUB_API_BASE_URL", "https://api.github.com")
     web_app_url: str = os.environ.get("WEB_APP_URL", "http://localhost:5173")
+    # Origins the browser-facing web app is allowed to call this API from.
+    # Defaults cover local dev on both loopback forms Vite may bind to;
+    # web_app_url is included so a configured production frontend works too.
+    cors_allowed_origins: list[str] = (
+        os.environ["CORS_ALLOWED_ORIGINS"].split(",")
+        if os.environ.get("CORS_ALLOWED_ORIGINS")
+        else list({"http://localhost:5173", "http://127.0.0.1:5173", web_app_url})
+    )
     # Fernet key (32 url-safe base64-encoded bytes) used to encrypt GitHub access
     # tokens at rest. Must be set in any persistent deployment -- an unset value
     # falls back to a per-process random key (see auth/crypto.py), which is fine
