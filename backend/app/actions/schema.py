@@ -101,8 +101,10 @@ class GithubOpenIssueParams(BaseModel):
 
 
 class GithubForkParams(BaseModel):
-    owner: GitRef
-    repo: GitRef
+    # Optional: "fork this repo" (no explicit target) falls back to whatever
+    # repo the caller is currently working in -- see api/execute.py.
+    owner: GitRef | None = None
+    repo: GitRef | None = None
 
 
 # One param model per action; the validator uses this as its whitelist.
@@ -134,3 +136,20 @@ class ResolvedAction(BaseModel):
     matched_intent_id: str | None = None
     clarifying_question: str | None = None
     source: Literal["offline", "online"]
+
+
+class RepoRef(BaseModel):
+    """Which repo a GitHub-API action applies to. Kept separate from NLU params
+    -- the assistant resolves *what* to do from English, but *which repo* is
+    caller-supplied context (the repo the user is currently working in), not
+    something to parse out of a sentence.
+    """
+
+    owner: GitRef
+    repo: GitRef
+
+
+# Actions the web backend can execute directly via the GitHub REST API.
+# Everything else needs a real local working tree and can only be executed
+# for real by the VS Code extension (see docs/architecture.md, Execution model).
+GITHUB_API_ACTIONS = {ActionType.GITHUB_CREATE_PR, ActionType.GITHUB_OPEN_ISSUE, ActionType.GITHUB_FORK}
