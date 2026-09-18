@@ -12,6 +12,7 @@ class Settings(BaseModel):
         "GITHUB_OAUTH_REDIRECT_URI", "http://localhost:8000/auth/github/callback"
     )
     github_api_base_url: str = os.environ.get("GITHUB_API_BASE_URL", "https://api.github.com")
+    web_app_url: str = os.environ.get("WEB_APP_URL", "http://localhost:5173")
     # Fernet key (32 url-safe base64-encoded bytes) used to encrypt GitHub access
     # tokens at rest. Must be set in any persistent deployment -- an unset value
     # falls back to a per-process random key (see auth/crypto.py), which is fine

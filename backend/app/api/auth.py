@@ -3,6 +3,7 @@ import time
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 from sqlmodel import Session
 
@@ -67,13 +68,8 @@ def github_login() -> LoginResponse:
     return LoginResponse(authorize_url=f"{_GITHUB_AUTHORIZE_URL}?{query}")
 
 
-class CallbackResponse(BaseModel):
-    session_token: str
-    github_login: str
-
-
-@router.get("/github/callback", response_model=CallbackResponse)
-def github_callback(code: str, state: str, db: Session = Depends(get_db_session)) -> CallbackResponse:
+@router.get("/github/callback")
+def github_callback(code: str, state: str, db: Session = Depends(get_db_session)) -> RedirectResponse:
     settings = get_settings()
     if not settings.github_oauth_client_id or not settings.github_oauth_client_secret:
         raise HTTPException(status_code=503, detail="GitHub OAuth is not configured on this server")
@@ -118,4 +114,10 @@ def github_callback(code: str, state: str, db: Session = Depends(get_db_session)
     db.add(session)
     db.commit()
 
-    return CallbackResponse(session_token=session_token, github_login=user_data["login"])
+    # Session token goes in the URL fragment, not the query string -- fragments
+    # are never sent to servers, so this avoids the token landing in access
+    # logs or a Referer header on the frontend's next request.
+    query = httpx.QueryParams({"github_login": user_data["login"]})
+    return RedirectResponse(
+        f"{settings.web_app_url}/?{query}#session_token={session_token}"
+    )
