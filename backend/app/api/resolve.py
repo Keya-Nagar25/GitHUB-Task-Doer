@@ -3,9 +3,9 @@ from typing import Literal
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from app.actions.schema import ResolvedAction
+from app.actions.schema import ACTION_PARAM_MODELS, ActionType, ResolvedAction
 from app.actions.validator import InvalidActionError, validate_action
-from app.nlu.offline_classifier import resolve_offline
+from app.nlu.router import resolve as resolve_intent
 
 router = APIRouter()
 
@@ -20,37 +20,36 @@ class ResolveResponse(BaseModel):
     message: str | None = None
 
 
+def _missing_required_params(action: ActionType, params: dict) -> set[str]:
+    model = ACTION_PARAM_MODELS[action]
+    required = {name for name, field in model.model_fields.items() if field.is_required()}
+    return required - set(params.keys())
+
+
 @router.post("/resolve", response_model=ResolveResponse)
 def resolve(request: ResolveRequest) -> ResolveResponse:
-    offline = resolve_offline(request.text)
+    outcome = resolve_intent(request.text)
 
-    if not offline.matched or offline.intent is None:
-        return ResolveResponse(status="unresolved", message=offline.message)
-
-    intent = offline.intent
-    explanation = intent.description
-    if intent.extra_warning:
-        explanation = f"{explanation} {intent.extra_warning}"
+    if not outcome.matched or outcome.action is None:
+        return ResolveResponse(status="unresolved", message=outcome.message)
 
     try:
         resolved = validate_action(
-            action=intent.action,
-            params=offline.params,
-            explanation=explanation,
-            destructive=intent.destructive,
-            confidence=offline.confidence,
-            source="offline",
-            matched_intent_id=intent.intent_id,
-            clarifying_question=offline.message if offline.confidence == "medium" else None,
+            action=outcome.action,
+            params=outcome.params,
+            explanation=outcome.explanation or "",
+            destructive=outcome.destructive,
+            confidence=outcome.confidence,
+            source=outcome.source,
+            matched_intent_id=outcome.matched_intent_id,
+            clarifying_question=outcome.clarifying_question,
         )
     except InvalidActionError:
-        missing = set(intent.param_schema.keys()) - set(offline.params.keys())
+        missing = _missing_required_params(ActionType(outcome.action), outcome.params)
+        detail = f"I still need: {', '.join(sorted(missing))}." if missing else "Some details didn't look right."
         return ResolveResponse(
             status="needs_clarification",
-            message=(
-                f"I think you want to: {intent.description}. "
-                f"I still need: {', '.join(sorted(missing)) or 'more details'}."
-            ),
+            message=f"I think you want to: {outcome.explanation}. {detail}",
         )
 
     return ResolveResponse(status="resolved", resolved_action=resolved)

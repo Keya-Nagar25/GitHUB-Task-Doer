@@ -18,7 +18,7 @@ A GitHub command assistant that lets Git/GitHub beginners use plain English inst
 
 ## Status
 
-Early scaffolding. See `docs/architecture.md` for the current design and milestone plan.
+Offline + online intent resolution is working end-to-end behind `/resolve`. See `docs/architecture.md` for the current design and milestone plan.
 
 ## Backend dev setup
 
@@ -27,3 +27,7 @@ cd backend
 pip install -e ".[dev]"
 uvicorn app.main:app --reload
 ```
+
+Set `ANTHROPIC_API_KEY` to enable the online (Claude API) fallback for phrasing the offline classifier doesn't confidently recognize. Without it, `/resolve` still works fully offline -- it just won't have the online fallback for ambiguous or unusual phrasing.
+
+Try it without a server: `python scripts/cli_demo.py`.
