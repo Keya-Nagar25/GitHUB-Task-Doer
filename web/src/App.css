@@ -129,13 +129,10 @@
   margin: 0.5rem 0;
 }
 
-.confirm-panel__button {
+.confirm-panel__actions {
+  display: flex;
+  gap: 0.5rem;
   margin-top: 0.5rem;
-}
-
-.confirm-panel__local-only p {
-  color: var(--text-dim);
-  font-size: 0.9rem;
 }
 
 .chat-input {

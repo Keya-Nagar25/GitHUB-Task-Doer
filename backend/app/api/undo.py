@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from sqlmodel import Session
 
 from app.actions.github_client import GithubApiError, GithubClient
+from app.actions.local_git import LocalGitError
 from app.auth.crypto import decrypt_token
 from app.auth.deps import get_current_session
 from app.auth.models import UserSession
@@ -28,13 +29,16 @@ def undo(
     if entry is None or entry.github_user_id != session.github_user_id:
         raise HTTPException(status_code=404, detail="No such action")
 
-    client = GithubClient(access_token=decrypt_token(session.encrypted_access_token))
+    access_token = decrypt_token(session.encrypted_access_token)
+    client = GithubClient(access_token=access_token)
 
     try:
-        result = perform_undo(db, entry, client)
+        result = perform_undo(db, entry, github_client=client, access_token=access_token)
     except NotUndoableError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except GithubApiError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+    except LocalGitError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     return UndoResponse(result=result)

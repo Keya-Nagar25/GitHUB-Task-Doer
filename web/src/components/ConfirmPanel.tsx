@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { GITHUB_API_ACTIONS, type ResolvedAction } from "../types";
+import type { ResolvedAction } from "../types";
 import { commandPreview } from "../commandPreview";
 
 interface ConfirmPanelProps {
@@ -13,7 +13,6 @@ export function ConfirmPanel({ resolvedAction, executing, executed, onConfirm }:
   const [doubleConfirmChecked, setDoubleConfirmChecked] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const canExecuteDirectly = GITHUB_API_ACTIONS.has(resolvedAction.action);
   const command = commandPreview(resolvedAction);
   const confirmDisabled =
     executing || executed || (resolvedAction.requires_double_confirmation && !doubleConfirmChecked);
@@ -58,21 +57,14 @@ export function ConfirmPanel({ resolvedAction, executing, executed, onConfirm }:
         </label>
       )}
 
-      {canExecuteDirectly ? (
+      <div className="confirm-panel__actions">
         <button className="confirm-panel__button" disabled={confirmDisabled} onClick={onConfirm}>
           {executed ? "Done" : executing ? "Running..." : "Confirm & Run"}
         </button>
-      ) : (
-        <div className="confirm-panel__local-only">
-          <p>
-            This needs a local working copy -- run it yourself, or use the GitHub Task Doer VS Code
-            extension to execute it directly.
-          </p>
-          <button className="confirm-panel__button confirm-panel__button--secondary" onClick={handleCopy}>
-            {copied ? "Copied" : "Copy command"}
-          </button>
-        </div>
-      )}
+        <button className="confirm-panel__button confirm-panel__button--secondary" onClick={handleCopy}>
+          {copied ? "Copied" : "Copy command"}
+        </button>
+      </div>
     </section>
   );
 }

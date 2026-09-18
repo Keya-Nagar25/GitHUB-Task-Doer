@@ -27,6 +27,15 @@ class Settings(BaseModel):
     # for local dev but invalidates all sessions on every restart.
     session_encryption_key: str | None = os.environ.get("SESSION_ENCRYPTION_KEY")
     database_url: str = os.environ.get("DATABASE_URL", "sqlite:///./taskdoer.db")
+    # Where the backend clones repos to actually run local git actions
+    # (commit, branch, push, ...) server-side -- see actions/local_git.py.
+    # One subdirectory per (github_user_id, owner__repo). Not the user's own
+    # machine -- a fresh clone pulled from GitHub, so uncommitted local work
+    # the user hasn't pushed is out of scope by construction.
+    git_workspace_root: str = os.environ.get(
+        "GIT_WORKSPACE_ROOT", os.path.join(os.path.dirname(__file__), "..", ".git-workspaces")
+    )
+    git_command_timeout_seconds: int = int(os.environ.get("GIT_COMMAND_TIMEOUT_SECONDS", "60"))
     intent_data_path: str = os.environ.get(
         "INTENT_DATA_PATH", os.path.join(os.path.dirname(__file__), "..", "..", "intent-data", "intents.yaml")
     )

@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, SQLModel, create_engine
 
+from app.actions.schema import ActionType
 from app.auth.crypto import encrypt_token
 from app.auth.deps import get_current_session
 from app.auth.models import UserSession
@@ -69,17 +70,27 @@ def test_execute_requires_confirmation(client):
     assert response.status_code == 400
 
 
-def test_execute_rejects_actions_needing_local_working_tree(client):
-    response = client.post(
-        "/execute",
-        json={
-            "resolved_action": _resolved_action(action="commit", params={"message": "hi"}),
-            "repo": {"owner": "o", "repo": "r"},
-            "confirmed": True,
-        },
-    )
-    assert response.status_code == 400
-    assert "VS Code extension" in response.json()["detail"]
+def test_execute_commit_runs_via_local_git_workspace(client):
+    with (
+        patch("app.api.execute.ensure_workspace", return_value="/workspace/o__r") as mock_ws,
+        patch("app.api.execute.current_head_sha", side_effect=["sha-before", "sha-after"]),
+        patch("app.api.execute.run_action", return_value="[main abc1234] fix bug") as mock_run,
+    ):
+        response = client.post(
+            "/execute",
+            json={
+                "resolved_action": _resolved_action(action="commit", params={"message": "fix bug"}),
+                "repo": {"owner": "o", "repo": "r"},
+                "confirmed": True,
+            },
+        )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["result"]["head_sha"] == "sha-after"
+    mock_ws.assert_called_once_with(1, "o", "r", "fake-gh-token")
+    mock_run.assert_called_once()
+    assert mock_run.call_args.args[0:4] == (1, "o", "r", ActionType.COMMIT)
 
 
 def test_execute_open_issue_then_undo(client):

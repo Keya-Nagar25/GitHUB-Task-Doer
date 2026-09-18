@@ -17,12 +17,6 @@ export type ActionType =
   | "github_open_issue"
   | "github_fork";
 
-export const GITHUB_API_ACTIONS: ReadonlySet<ActionType> = new Set([
-  "github_create_pr",
-  "github_open_issue",
-  "github_fork",
-]);
-
 export interface ResolvedAction {
   action: ActionType;
   params: Record<string, unknown>;

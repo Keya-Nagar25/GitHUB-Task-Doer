@@ -67,7 +67,7 @@
     - "create a branch named {name}"
     - "start a new branch {name}"
   destructive: false
-  undo_strategy: recreate_branch
+  undo_strategy: delete_branch
 
 - intent_id: git.checkout
   action: checkout

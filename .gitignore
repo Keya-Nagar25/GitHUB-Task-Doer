@@ -15,6 +15,7 @@ out/
 
 # Generated / cached
 intent-data/embeddings_cache/
+backend/.git-workspaces/
 
 # Env
 .env

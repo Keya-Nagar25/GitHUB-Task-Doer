@@ -10,15 +10,15 @@ A GitHub command assistant that lets Git/GitHub beginners use plain English inst
 
 ## Project layout
 
-- `backend/` - Python/FastAPI service: intent resolution (offline + online), validation, GitHub API execution, undo/history log.
-- `web/` - Web app front end.
-- `vscode-extension/` - VS Code extension for executing local git operations on your machine.
+- `backend/` - Python/FastAPI service: intent resolution (offline + online), validation, GitHub API execution, server-side git execution (clones repos per-user to run git commands for real), undo/history log.
+- `web/` - Web app front end. Executes every action for real once you're logged in with GitHub and have picked a repo.
+- `vscode-extension/` - Planned: will act on your actual local working copy, including uncommitted changes (not yet built).
 - `intent-data/` - Shared catalog of supported actions, used by both the offline classifier and the online LLM contract.
 - `docs/architecture.md` - Full architecture and build plan.
 
 ## Status
 
-Offline + online intent resolution is working end-to-end behind `/resolve`. See `docs/architecture.md` for the current design and milestone plan.
+Intent resolution, GitHub OAuth, and execution (GitHub REST actions + real server-side git execution) are working end-to-end, with an undo/history log and a web frontend. GitHub OAuth App credentials aren't registered yet, so login/execution can't be exercised live until that's set up. See `docs/architecture.md` for the current design and milestone plan.
 
 ## Backend dev setup
 

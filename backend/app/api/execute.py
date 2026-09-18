@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from sqlmodel import Session
 
 from app.actions.github_client import GithubApiError, GithubClient
+from app.actions.local_git import LocalGitError, current_head_sha, ensure_workspace, run_action
 from app.actions.schema import GITHUB_API_ACTIONS, ActionType, RepoRef, ResolvedAction
 from app.actions.validator import InvalidActionError, validate_action
 from app.auth.crypto import decrypt_token
@@ -54,21 +55,22 @@ def execute(
     except InvalidActionError as exc:
         raise HTTPException(status_code=400, detail="Could not safely re-validate this action") from exc
 
-    if resolved.action not in GITHUB_API_ACTIONS:
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                f"'{resolved.action.value}' needs a local working copy and can't be run from the "
-                "web app directly -- use the VS Code extension, or run the shown command yourself."
-            ),
-        )
+    access_token = decrypt_token(session.encrypted_access_token)
 
-    client = GithubClient(access_token=decrypt_token(session.encrypted_access_token))
-
-    try:
-        result, post_state = _execute_github_action(client, resolved.action, resolved.params, request.repo)
-    except GithubApiError as exc:
-        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+    if resolved.action in GITHUB_API_ACTIONS:
+        client = GithubClient(access_token=access_token)
+        try:
+            result, post_state = _execute_github_action(client, resolved.action, resolved.params, request.repo)
+        except GithubApiError as exc:
+            raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+        pre_state = None
+    else:
+        try:
+            result, pre_state, post_state = _execute_local_git_action(
+                session.github_user_id, request.repo, resolved.action, resolved.params, access_token
+            )
+        except LocalGitError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     entry = record_action(
         db,
@@ -77,6 +79,7 @@ def execute(
         params=resolved.params,
         repo_owner=request.repo.owner,
         repo_name=request.repo.repo,
+        pre_state=pre_state,
         post_state=post_state,
     )
 
@@ -101,3 +104,15 @@ def _execute_github_action(
         return result, {"owner": result["owner"]["login"], "name": result["name"], "html_url": result["html_url"]}
 
     raise HTTPException(status_code=400, detail=f"No execution handler for '{action.value}'")
+
+
+def _execute_local_git_action(
+    github_user_id: int, repo: RepoRef, action: ActionType, params: dict, access_token: str
+) -> tuple[dict, dict, dict]:
+    path = ensure_workspace(github_user_id, repo.owner, repo.repo, access_token)
+    pre_state = {"head_sha": current_head_sha(path)}
+
+    output = run_action(github_user_id, repo.owner, repo.repo, action, params, path, access_token)
+
+    post_state = {"head_sha": current_head_sha(path)}
+    return {"output": output, "head_sha": post_state["head_sha"]}, pre_state, post_state

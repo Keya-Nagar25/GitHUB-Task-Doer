@@ -5,7 +5,7 @@ import { ConfirmPanel } from "./components/ConfirmPanel";
 import { HistoryTimeline } from "./components/HistoryTimeline";
 import { RepoSelector } from "./components/RepoSelector";
 import { executeAction, getLoginUrl, resolveText } from "./api/client";
-import { GITHUB_API_ACTIONS, type ResolvedAction, type RepoRef } from "./types";
+import type { ResolvedAction, RepoRef } from "./types";
 
 interface Turn {
   id: string;
@@ -131,8 +131,6 @@ function App() {
     const turn = turns.find((t) => t.id === turnId);
     if (!turn?.resolvedAction) return;
 
-    if (!GITHUB_API_ACTIONS.has(turn.resolvedAction.action)) return;
-
     if (!session) {
       setTurns((prev) =>
         prev.map((t) => (t.id === turnId ? { ...t, message: "Log in with GitHub first to run this." } : t)),
@@ -151,10 +149,11 @@ function App() {
     try {
       const response = await executeAction(turn.resolvedAction, repo, session.token);
       const url = typeof response.result.html_url === "string" ? response.result.html_url : null;
+      const output = typeof response.result.output === "string" ? response.result.output.trim() : null;
       setTurns((prev) =>
         prev.map((t) =>
           t.id === turnId
-            ? { ...t, executing: false, executed: true, executeResult: url ?? "Done" }
+            ? { ...t, executing: false, executed: true, executeResult: url ?? output ?? "Done" }
             : t,
         ),
       );
