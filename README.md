@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # GitHub Task Doer
 
 A GitHub command assistant that lets Git/GitHub beginners use plain English instead of memorizing commands. Type "undo my last commit" and get the exact command, a plain-English explanation of its effect, and a confirm step before anything runs.
@@ -31,3 +32,6 @@ uvicorn app.main:app --reload
 Set `ANTHROPIC_API_KEY` to enable the online (Claude API) fallback for phrasing the offline classifier doesn't confidently recognize. Without it, `/resolve` still works fully offline -- it just won't have the online fallback for ambiguous or unusual phrasing.
 
 Try it without a server: `python scripts/cli_demo.py`.
+=======
+# GitHUB-Task-Doer
+>>>>>>> 3b791638397b30230956481c43a1cab8abe27090
