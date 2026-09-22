@@ -33,5 +33,4 @@ Set `ANTHROPIC_API_KEY` to enable the online (Claude API) fallback for phrasing 
 
 Try it without a server: `python scripts/cli_demo.py`.
 =======
-# GitHUB-Task-Doer
->>>>>>> 3b791638397b30230956481c43a1cab8abe27090
+
