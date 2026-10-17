@@ -10,11 +10,10 @@ from app.nlu.intent_catalog import IntentDef, default_params, intent_data_conten
 
 _CACHE_DIR = Path(__file__).resolve().parent.parent.parent.parent / "intent-data" / "embeddings_cache"
 _MODEL_NAME = "all-MiniLM-L6-v2"
-# Bump when the embedding text derivation changes, so stale caches on disk
-# (keyed only by intents.yaml content) get rebuilt.
+
 _CACHE_FORMAT_VERSION = 2
 
-_model = None  # lazy singleton, avoids reloading the model on every call
+_model = None  
 
 
 def _get_model():
@@ -33,11 +32,6 @@ class _PhraseEntry:
 
 
 def _embedding_text(template: str) -> str:
-    # Strip "{param}" placeholders before embedding: MiniLM cosine similarity
-    # between a short template and a longer real sentence with slot content
-    # (e.g. a title/message) is noisy when the raw braces are embedded too.
-    # This fallback path only needs to capture the surrounding intent, since
-    # exact/near-exact phrasing is already handled by _structural_match.
     return re.sub(r"\{[a-zA-Z_]+\}", "", template).strip()
 
 
@@ -82,8 +76,7 @@ def _load_or_build_embeddings() -> tuple[list[_PhraseEntry], np.ndarray]:
 
 
 def _template_to_regex(template: str) -> re.Pattern:
-    # Turn "commit everything with the message {message}" into a regex that
-    # captures {message} while matching the surrounding literal text exactly.
+
     parts = re.split(r"(\{[a-zA-Z_]+\})", template)
     pattern_parts = []
     for part in parts:
@@ -126,8 +119,8 @@ class OfflineResolution:
     intent: IntentDef | None
     params: dict
     similarity: float
-    confidence: str  # "high" | "medium" | "none"
-    message: str | None = None  # set when matched is False, or as a "did you mean" hint
+    confidence: str  
+    message: str | None = None  
 
 
 def resolve_offline(text: str) -> OfflineResolution:
