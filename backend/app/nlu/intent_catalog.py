@@ -55,10 +55,6 @@ def get_intent(intent_id: str) -> IntentDef:
             return intent
     raise KeyError(f"Unknown intent_id: {intent_id}")
 
-
-# param_schema entries are either a type-hint placeholder ("str", "int", ...)
-# meaning "extract this from the user's phrase", or a literal fixed value
-# (e.g. mode: "soft") for intents that have no variable slots at all.
 _TYPE_HINTS = {"str", "int", "bool", "list[str]"}
 
 
