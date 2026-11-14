@@ -95,7 +95,37 @@ def _extract_params(text: str, intent: IntentDef) -> dict:
         match = _template_to_regex(template).match(text.strip())
         if match:
             return {k: v.strip() for k, v in match.groupdict().items()}
-    return {}
+    return _loose_extract_params(text, intent)
+
+
+# Slots whose value is free text ("fix login bug"); every other slot is a
+# single token like a branch name, so it stops at the first space.
+_FREE_TEXT_SLOTS = {"message", "title", "body"}
+# Words that can follow an anchor word but are never a real slot value,
+# e.g. "create a branch for login" must not capture "for" as the name.
+_NOT_A_VALUE = {"a", "an", "the", "to", "for", "called", "named", "with", "into", "from", "my", "this"}
+
+
+def _loose_extract_params(text: str, intent: IntentDef) -> dict:
+    """Fallback when the text doesn't match any template exactly: take the
+    word right before each "{slot}" in the templates (e.g. "called" in
+    "make a new branch called {name}") and grab what follows it in the text.
+    Only slots that stand alone between spaces are tried, so "{owner}/{repo}"
+    is never half-filled.
+    """
+    params: dict = {}
+    for template in intent.example_phrases:
+        for m in re.finditer(r"(\w+) \{([a-zA-Z_]+)\}(?=$| )", template):
+            anchor, slot = m.groups()
+            if slot in params:
+                continue
+            value_re = r"(.+)" if slot in _FREE_TEXT_SLOTS else r"([^\s\"'`]+)"
+            found = re.search(rf"\b{re.escape(anchor)}\s+[\"'`]?{value_re}", text, re.IGNORECASE)
+            if found:
+                value = found.group(1).strip().strip("\"'`").rstrip(".,!?")
+                if value and value.lower() not in _NOT_A_VALUE:
+                    params[slot] = value
+    return params
 
 
 def _structural_match(text: str) -> tuple[IntentDef, dict] | None:

@@ -1,4 +1,3 @@
-
 # GitHub Task Doer
 
 A GitHub command assistant that lets Git/GitHub beginners use plain English instead of memorizing commands. Type "undo my last commit" and get the exact command, a plain-English explanation of its effect, and a confirm step before anything runs.
@@ -33,4 +32,3 @@ Set `ANTHROPIC_API_KEY` to enable the online (Claude API) fallback for phrasing 
 
 Try it without a server: `python scripts/cli_demo.py`.
 =======
-
