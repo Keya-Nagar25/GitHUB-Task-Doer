@@ -105,6 +105,10 @@ def run_action(
     never builds a shell string and never runs with shell=True.
     """
     with _workspace_lock(github_user_id, owner, repo):
+        if action is ActionType.CLONE:
+            # ensure_workspace() has already cloned (or fetched) by the time we get here.
+            return f"{owner}/{repo} is cloned and up to date with GitHub."
+
         if action is ActionType.ADD:
             paths = params.get("paths") or ["."]
             return _run(["add", *paths], cwd=path)

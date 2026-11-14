@@ -25,6 +25,7 @@ GitRef = Annotated[str, AfterValidator(_validate_git_ref)]
 
 
 class ActionType(str, Enum):
+    CLONE = "clone"
     ADD = "add"
     COMMIT = "commit"
     PUSH = "push"
@@ -39,6 +40,12 @@ class ActionType(str, Enum):
     GITHUB_CREATE_PR = "github_create_pr"
     GITHUB_OPEN_ISSUE = "github_open_issue"
     GITHUB_FORK = "github_fork"
+
+
+class CloneParams(BaseModel):
+    # Clones the repo picked in the repo selector -- which repo is caller-
+    # supplied context (see RepoRef), not parsed out of the sentence.
+    pass
 
 
 class AddParams(BaseModel):
@@ -109,6 +116,7 @@ class GithubForkParams(BaseModel):
 
 # One param model per action; the validator uses this as its whitelist.
 ACTION_PARAM_MODELS: dict[ActionType, type[BaseModel]] = {
+    ActionType.CLONE: CloneParams,
     ActionType.ADD: AddParams,
     ActionType.COMMIT: CommitParams,
     ActionType.PUSH: PushParams,
@@ -149,7 +157,6 @@ class RepoRef(BaseModel):
     repo: GitRef
 
 
-# Actions the web backend can execute directly via the GitHub REST API.
-# Everything else needs a real local working tree and can only be executed
-# for real by the VS Code extension (see docs/architecture.md, Execution model).
+# Actions the backend executes via the GitHub REST API. Everything else runs
+# as a real git command in a server-side clone (see actions/local_git.py).
 GITHUB_API_ACTIONS = {ActionType.GITHUB_CREATE_PR, ActionType.GITHUB_OPEN_ISSUE, ActionType.GITHUB_FORK}

@@ -1,7 +1,14 @@
 import os
 from functools import lru_cache
+from pathlib import Path
 
+from dotenv import load_dotenv
 from pydantic import BaseModel
+
+# Read backend/.env (if present) so settings don't have to be set as system
+# environment variables. Real environment variables still win over the file.
+# See backend/.env.example for the available keys.
+load_dotenv(Path(__file__).resolve().parent.parent / ".env", override=False)
 
 
 class Settings(BaseModel):

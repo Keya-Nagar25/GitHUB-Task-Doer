@@ -67,3 +67,8 @@ def test_loose_extraction_skips_filler_words():
 
     params = _loose_extract_params("make a branch for the team", get_intent("git.branch_create"))
     assert params.get("name") != "for"
+
+
+def test_clone_is_not_mistaken_for_fork():
+    result = resolve_offline("Clone my portfolio repo")
+    assert result.intent.intent_id == "git.clone"

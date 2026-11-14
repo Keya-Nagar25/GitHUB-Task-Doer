@@ -2,6 +2,7 @@
 // (small enough surface that a generated client isn't worth it yet).
 
 export type ActionType =
+  | "clone"
   | "add"
   | "commit"
   | "push"

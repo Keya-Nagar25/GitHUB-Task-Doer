@@ -1,19 +1,20 @@
 import type { ResolvedAction } from "./types";
 
 // Renders the literal command a ResolvedAction corresponds to, for display
-// and copy/paste only -- this is never executed by the web app itself. Local
-// working-tree actions execute for real only via the VS Code extension; see
-// docs/architecture.md, Execution model.
+// and copy/paste. Execution happens on the backend (see backend/app/api/execute.py),
+// so this must stay faithful to what actually runs -- especially flags like --force.
 export function commandPreview(action: ResolvedAction): string {
-  const p = action.params as Record<string, string | undefined>;
+  const p = action.params as Record<string, string | boolean | undefined>;
 
   switch (action.action) {
+    case "clone":
+      return "git clone https://github.com/<selected repo>.git";
     case "add":
       return "git add .";
     case "commit":
       return `git commit -m "${p.message ?? ""}"`;
     case "push":
-      return `git push ${p.remote ?? "origin"}${p.branch ? ` ${p.branch}` : ""}${p.force === "true" ? " --force" : ""}`;
+      return `git push ${p.remote ?? "origin"}${p.branch ? ` ${p.branch}` : ""}${p.force === true ? " --force" : ""}`;
     case "pull":
       return `git pull ${p.remote ?? "origin"}${p.branch ? ` ${p.branch}` : ""}`;
     case "branch":

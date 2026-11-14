@@ -4,7 +4,7 @@ import { ChatInput } from "./components/ChatInput";
 import { ConfirmPanel } from "./components/ConfirmPanel";
 import { HistoryTimeline } from "./components/HistoryTimeline";
 import { RepoSelector } from "./components/RepoSelector";
-import { executeAction, getLoginUrl, resolveText } from "./api/client";
+import { SESSION_EXPIRED_EVENT, executeAction, getLoginUrl, resolveText } from "./api/client";
 import type { ResolvedAction, RepoRef } from "./types";
 
 interface Turn {
@@ -89,6 +89,13 @@ function App() {
     }
     setSession(null);
   };
+
+  // Any API call answered with 401 means the backend dropped this login
+  // (e.g. it restarted), so show the "Log in with GitHub" button again.
+  useEffect(() => {
+    window.addEventListener(SESSION_EXPIRED_EVENT, handleLogout);
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, handleLogout);
+  }, []);
 
   const handleAsk = async (text: string) => {
     setAsking(true);

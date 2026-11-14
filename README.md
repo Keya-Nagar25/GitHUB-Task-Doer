@@ -28,7 +28,9 @@ pip install -e ".[dev]"
 uvicorn app.main:app --reload
 ```
 
-Set `ANTHROPIC_API_KEY` to enable the online (Claude API) fallback for phrasing the offline classifier doesn't confidently recognize. Without it, `/resolve` still works fully offline -- it just won't have the online fallback for ambiguous or unusual phrasing.
+Copy `backend/.env.example` to `backend/.env` and fill in your GitHub OAuth App credentials (and optionally `SESSION_ENCRYPTION_KEY` so logins survive restarts). The backend reads that file on startup.
+
+Set `ANTHROPIC_API_KEY` (in `backend/.env` or your environment) to enable the online (Claude API) fallback for phrasing the offline classifier doesn't confidently recognize. Without it, `/resolve` still works fully offline -- it just won't have the online fallback for ambiguous or unusual phrasing.
 
 Try it without a server: `python scripts/cli_demo.py`.
 =======

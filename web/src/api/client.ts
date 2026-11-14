@@ -9,6 +9,8 @@ import type {
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
 
+export const SESSION_EXPIRED_EVENT = "taskdoer:session-expired";
+
 export class ApiError extends Error {
   status: number;
   constructor(status: number, message: string) {
@@ -22,17 +24,27 @@ async function request<T>(
   options: RequestInit & { sessionToken?: string | null } = {},
 ): Promise<T> {
   const { sessionToken, headers, ...rest } = options;
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...rest,
-    headers: {
-      "Content-Type": "application/json",
-      ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}),
-      ...headers,
-    },
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      ...rest,
+      headers: {
+        "Content-Type": "application/json",
+        ...(sessionToken ? { Authorization: `Bearer ${sessionToken}` } : {}),
+        ...headers,
+      },
+    });
+  } catch {
+    // fetch only throws when no response came back at all (server down, wrong URL, CORS).
+    throw new ApiError(0, `Can't reach the backend at ${API_BASE_URL}. Is it running? (cd backend, then: uvicorn app.main:app --reload)`);
+  }
 
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
+    if (response.status === 401 && sessionToken) {
+      // The backend no longer recognises this login -- let App log out.
+      window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
+    }
     throw new ApiError(response.status, body.detail ?? `Request failed (${response.status})`);
   }
   return response.json() as Promise<T>;

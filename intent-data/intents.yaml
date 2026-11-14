@@ -2,6 +2,19 @@
 # tool-calling contract. Every action the assistant can ever propose must
 # have an entry here. See docs/architecture.md for the full design.
 
+- intent_id: git.clone
+  action: clone
+  description: "Download (clone) the selected repository so you can work on it"
+  param_schema: {}
+  example_phrases:
+    - "clone my repo"
+    - "clone this repository"
+    - "clone my portfolio repo"
+    - "download my repo"
+    - "get a copy of my repository to work on"
+  destructive: false
+  undo_strategy: not_undoable
+
 - intent_id: git.add
   action: add
   description: "Stage changed files for commit"

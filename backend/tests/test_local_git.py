@@ -132,3 +132,12 @@ def test_reset_soft_uses_recorded_sha(tmp_path):
         reset_soft(tmp_path, "deadbeef")
 
     assert mock_run.call_args.args[0] == ["git", "reset", "--soft", "deadbeef"]
+
+
+def test_run_action_clone_runs_no_extra_git_command(tmp_path):
+    # The clone itself already happened in ensure_workspace(); run_action just reports it.
+    with patch("app.actions.local_git.subprocess.run") as mock_run:
+        output = run_action(1, "o", "r", ActionType.CLONE, {}, tmp_path, "tok")
+
+    mock_run.assert_not_called()
+    assert "o/r" in output

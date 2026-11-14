@@ -120,3 +120,38 @@ def test_execute_open_issue_then_undo(client):
     with patch("app.api.undo.GithubClient", return_value=fake_github_client):
         second_undo = client.post(f"/undo/{action_log_id}")
     assert second_undo.status_code == 400
+
+
+
+def test_session_encrypted_with_old_key_gets_401_not_500(test_db):
+    # Simulates a server restart without a persistent SESSION_ENCRYPTION_KEY:
+    # the stored token was encrypted with a key this process no longer has.
+    # Uses the real get_current_session (only the DB is overridden).
+    from cryptography.fernet import Fernet
+
+    with Session(test_db) as db:
+        db.add(
+            UserSession(
+                token="stale-token",
+                github_user_id=7,
+                github_login="someone",
+                encrypted_access_token=Fernet(Fernet.generate_key()).encrypt(b"gh-token"),
+            )
+        )
+        db.commit()
+
+    def override_db():
+        with Session(test_db) as session:
+            yield session
+
+    app.dependency_overrides[get_db_session] = override_db
+    try:
+        with TestClient(app) as c:
+            response = c.get("/history/actions", headers={"Authorization": "Bearer stale-token"})
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 401
+    assert "log in" in response.json()["detail"].lower()
+    with Session(test_db) as db:
+        assert db.get(UserSession, "stale-token") is None
