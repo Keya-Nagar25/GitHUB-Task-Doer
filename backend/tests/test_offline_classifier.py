@@ -33,3 +33,37 @@ def test_create_branch_extracts_name():
     assert result.matched
     assert result.intent.intent_id == "git.branch_create"
     assert result.params.get("name") == "feature-login"
+
+
+def test_create_branch_called_extracts_name():
+    result = resolve_offline("create a branch called login-page")
+    assert result.intent.intent_id == "git.branch_create"
+    assert result.params.get("name") == "login-page"
+
+
+def test_branch_name_extracted_from_paraphrase():
+    # Not an exact template -- falls back to the anchor-word extraction.
+    result = resolve_offline("please create me a new branch called login-page")
+    assert result.intent.intent_id == "git.branch_create"
+    assert result.params.get("name") == "login-page"
+
+
+def test_go_back_to_main_is_checkout():
+    result = resolve_offline("go back to main")
+    assert result.intent.intent_id == "git.checkout"
+    assert result.params.get("ref") == "main"
+
+
+def test_save_changes_as_extracts_commit_message():
+    result = resolve_offline("save these changes as login feature")
+    assert result.intent.intent_id == "git.commit"
+    assert result.params.get("message") == "login feature"
+
+
+def test_loose_extraction_skips_filler_words():
+    # "branch for" must never turn "for" into the branch name.
+    from app.nlu.intent_catalog import get_intent
+    from app.nlu.offline_classifier import _loose_extract_params
+
+    params = _loose_extract_params("make a branch for the team", get_intent("git.branch_create"))
+    assert params.get("name") != "for"

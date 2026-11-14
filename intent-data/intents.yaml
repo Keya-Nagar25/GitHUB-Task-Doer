@@ -25,6 +25,8 @@
     - "commit everything with the message {message}"
     - "save this with message {message}"
     - "make a commit saying {message}"
+    - "save these changes as {message}"
+    - "commit with message {message}"
     - "commit this for me"
     - "please commit this"
   destructive: false
@@ -65,6 +67,10 @@
   example_phrases:
     - "make a new branch called {name}"
     - "create a branch named {name}"
+    - "create a branch called {name}"
+    - "create a new branch {name}"
+    - "create a branch for {name}"
+    - "make a branch {name}"
     - "start a new branch {name}"
   destructive: false
   undo_strategy: delete_branch
@@ -76,7 +82,9 @@
     ref: str
   example_phrases:
     - "switch to {ref}"
+    - "switch to branch {ref}"
     - "go to branch {ref}"
+    - "go back to {ref}"
     - "check out {ref}"
   destructive: false
   undo_strategy: manual_only
