@@ -91,6 +91,8 @@ def test_execute_commit_runs_via_local_git_workspace(client):
     mock_ws.assert_called_once_with(1, "o", "r", "fake-gh-token")
     mock_run.assert_called_once()
     assert mock_run.call_args.args[0:4] == (1, "o", "r", ActionType.COMMIT)
+    # Commits are authored as the logged-in GitHub user, not the server's git identity.
+    assert mock_run.call_args.kwargs["github_login"] == "octocat"
 
 
 def test_execute_open_issue_then_undo(client):
