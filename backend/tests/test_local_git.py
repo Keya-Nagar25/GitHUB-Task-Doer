@@ -141,3 +141,32 @@ def test_run_action_clone_runs_no_extra_git_command(tmp_path):
 
     mock_run.assert_not_called()
     assert "o/r" in output
+
+
+def test_run_action_commit_is_authored_as_logged_in_user(tmp_path):
+    with (
+        patch("app.actions.local_git.get_settings") as mock_settings,
+        patch("app.actions.local_git.subprocess.run", return_value=_ok()) as mock_run,
+    ):
+        mock_settings.return_value.git_command_timeout_seconds = 60
+        run_action(1, "o", "r", ActionType.COMMIT, {"message": "fix bug"}, tmp_path, "tok", github_login="octocat")
+
+    assert mock_run.call_args.args[0] == [
+        "git",
+        "-c", "user.name=octocat",
+        "-c", "user.email=1+octocat@users.noreply.github.com",
+        "commit", "-m", "fix bug",
+    ]
+
+
+def test_run_action_merge_is_authored_as_logged_in_user(tmp_path):
+    with (
+        patch("app.actions.local_git.get_settings") as mock_settings,
+        patch("app.actions.local_git.subprocess.run", return_value=_ok()) as mock_run,
+    ):
+        mock_settings.return_value.git_command_timeout_seconds = 60
+        run_action(1, "o", "r", ActionType.MERGE, {"ref": "feature"}, tmp_path, "tok", github_login="octocat")
+
+    cmd = mock_run.call_args.args[0]
+    assert "user.name=octocat" in cmd
+    assert cmd[-2:] == ["merge", "feature"]

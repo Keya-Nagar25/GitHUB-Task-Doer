@@ -95,8 +95,32 @@ def current_branch(path: Path) -> str:
     return _run(["rev-parse", "--abbrev-ref", "HEAD"], cwd=path).strip()
 
 
+def _identity_args(github_user_id: int, github_login: str | None) -> list[str]:
+    """Per-invocation commit author for the logged-in GitHub user.
+
+    Without this, commits made in the server-side clone are credited to
+    whatever git identity the server machine has configured globally (or fail
+    with "Please tell me who you are" if it has none). The noreply address is
+    the one GitHub itself uses, so the commit links to the user's profile
+    without exposing their real email.
+    """
+    if not github_login:
+        return []
+    return [
+        "-c", f"user.name={github_login}",
+        "-c", f"user.email={github_user_id}+{github_login}@users.noreply.github.com",
+    ]
+
+
 def run_action(
-    github_user_id: int, owner: str, repo: str, action: ActionType, params: dict, path: Path, access_token: str
+    github_user_id: int,
+    owner: str,
+    repo: str,
+    action: ActionType,
+    params: dict,
+    path: Path,
+    access_token: str,
+    github_login: str | None = None,
 ) -> str:
     """Run one whitelisted git action against an already-prepared workspace.
 
@@ -114,7 +138,7 @@ def run_action(
             return _run(["add", *paths], cwd=path)
 
         if action is ActionType.COMMIT:
-            return _run(["commit", "-m", params["message"]], cwd=path)
+            return _run([*_identity_args(github_user_id, github_login), "commit", "-m", params["message"]], cwd=path)
 
         if action is ActionType.PUSH:
             remote = params.get("remote") or "origin"
@@ -136,7 +160,8 @@ def run_action(
             return _run(["checkout", params["ref"]], cwd=path)
 
         if action is ActionType.MERGE:
-            return _run(["merge", params["ref"]], cwd=path)
+            # A merge can create a merge commit, so it needs the same author identity.
+            return _run([*_identity_args(github_user_id, github_login), "merge", params["ref"]], cwd=path)
 
         if action is ActionType.RESET:
             return _run(["reset", f"--{params['mode']}", params["target"]], cwd=path)

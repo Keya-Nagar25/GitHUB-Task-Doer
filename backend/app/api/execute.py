@@ -67,7 +67,7 @@ def execute(
     else:
         try:
             result, pre_state, post_state = _execute_local_git_action(
-                session.github_user_id, request.repo, resolved.action, resolved.params, access_token
+                session.github_user_id, session.github_login, request.repo, resolved.action, resolved.params, access_token
             )
         except LocalGitError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -107,12 +107,14 @@ def _execute_github_action(
 
 
 def _execute_local_git_action(
-    github_user_id: int, repo: RepoRef, action: ActionType, params: dict, access_token: str
+    github_user_id: int, github_login: str, repo: RepoRef, action: ActionType, params: dict, access_token: str
 ) -> tuple[dict, dict, dict]:
     path = ensure_workspace(github_user_id, repo.owner, repo.repo, access_token)
     pre_state = {"head_sha": current_head_sha(path)}
 
-    output = run_action(github_user_id, repo.owner, repo.repo, action, params, path, access_token)
+    output = run_action(
+        github_user_id, repo.owner, repo.repo, action, params, path, access_token, github_login=github_login
+    )
 
     post_state = {"head_sha": current_head_sha(path)}
     return {"output": output, "head_sha": post_state["head_sha"]}, pre_state, post_state
