@@ -62,8 +62,28 @@ def test_fetch_used_when_workspace_already_cloned(tmp_path):
         mock_settings.return_value.git_command_timeout_seconds = 60
         ensure_workspace(1, "o", "r", "tok")
 
-    cmd = mock_run.call_args.args[0]
-    assert "fetch" in cmd
+    cmds = [call.args[0] for call in mock_run.call_args_list]
+    assert "fetch" in cmds[0]
+    # ...then the checked-out branch is fast-forwarded to what was fetched.
+    assert cmds[1] == ["git", "merge", "--ff-only", "@{u}"]
+
+
+def test_fast_forward_failure_does_not_fail_workspace(tmp_path):
+    # Diverged branch / no upstream: the fast-forward is skipped, not an error.
+    workspace_root = tmp_path / "workspaces"
+    path = workspace_root / "1" / "o__r"
+    (path / ".git").mkdir(parents=True)
+
+    with (
+        patch("app.actions.local_git.get_settings") as mock_settings,
+        patch(
+            "app.actions.local_git.subprocess.run",
+            side_effect=[_ok(), _fail("fatal: Not possible to fast-forward, aborting.")],
+        ),
+    ):
+        mock_settings.return_value.git_workspace_root = str(workspace_root)
+        mock_settings.return_value.git_command_timeout_seconds = 60
+        assert ensure_workspace(1, "o", "r", "tok") == path
 
 
 def test_current_head_sha_and_branch_run_expected_commands(tmp_path):

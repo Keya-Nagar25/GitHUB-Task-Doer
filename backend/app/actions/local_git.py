@@ -84,7 +84,24 @@ def ensure_workspace(github_user_id: int, owner: str, repo: str, access_token: s
             _run(["clone", clone_url, "."], cwd=path, access_token=access_token, needs_auth=True)
         else:
             _run(["fetch", "origin"], cwd=path, access_token=access_token, needs_auth=True)
+            _fast_forward_current_branch(path)
     return path
+
+
+def _fast_forward_current_branch(path: Path) -> None:
+    """Move the checked-out branch up to what was just fetched from GitHub.
+
+    `git fetch` alone only updates origin/<branch>; the local branch stays
+    where it was, so a commit made on top of it would later be rejected on
+    push if GitHub moved on in the meantime. --ff-only never rewrites or
+    merges anything: if the branch has its own unpushed commits that diverge
+    from GitHub, or has no upstream (a brand-new branch, a detached HEAD), it
+    is left exactly as it is and the user's work is never touched.
+    """
+    try:
+        _run(["merge", "--ff-only", "@{u}"], cwd=path)
+    except LocalGitError:
+        pass
 
 
 def current_head_sha(path: Path) -> str:
